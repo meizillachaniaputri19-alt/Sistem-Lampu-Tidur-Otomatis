@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi Lampu Tidur Otomatis</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        body {
+            background-color: #0b1120;
+            color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            transition: background-color 0.5s ease;
+        }
+        /* Efek cahaya ruangan saat lampu menyala */
+        body.room-lit {
+            background-color: #1e1b18;
+        }
+        .device-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+        .title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #e2e8f0;
+        }
+        .subtitle {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-bottom: 25px;
+        }
+        /* Visual Lampu Tidur */
+        .lamp-container {
+            position: relative;
+            height: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .lamp-shade {
+            width: 90px;
+            height: 70px;
+            background: #475569;
+            border-radius: 45px 45px 10px 10px;
+            position: relative;
+            z-index: 2;
+            transition: all 0.4s ease;
+        }
+        .lamp-stand {
+            width: 12px;
+            height: 45px;
+            background: #64748b;
+            z-index: 1;
+        }
+        .lamp-base {
+            width: 55px;
+            height: 10px;
+            background: #94a3b8;
+            border-radius: 5px;
+        }
+        /* Status Lampu Menyala */
+        .lamp-shade.on {
+            background: #fef08a;
+            box-shadow: 0 0 35px #facc15, 0 0 80px #eab308;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            background: #334155;
+            color: #cbd5e1;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+        .status-badge.on {
+            background: rgba(250, 204, 21, 0.2);
+            color: #facc15;
+            border: 1px solid #facc15;
+        }
+        .logic-readout {
+            font-family: monospace;
+            font-size: 13px;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 8px;
+            color: #38bdf8;
+            margin-bottom: 25px;
+        }
+        /* Kontrol Switch */
+        .control-group {
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .switch-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f172a;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid #1e293b;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .switch-row:hover {
+            border-color: #3b82f6;
+        }
+        .label-title {
+            font-size: 14px;
+            font-weight: 600;
+            display: block;
+        }
+        .label-desc {
+            font-size: 11px;
+            color: #94a3b8;
+        }
+        /* Desain Toggle Switch Modern */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334155;
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #3b82f6;
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+    </style>
+</head>
+<body>
+
+<div class="device-card">
+    <div class="title">Smart Sleep Lamp</div>
+    <div class="subtitle">Logika: L &equiv; (P &and; Q) &or; R</div>
+
+    <!-- Ilustrasi Lampu -->
+    <div class="lamp-container">
+        <div id="lampShade" class="lamp-shade"></div>
+        <div class="lamp-stand"></div>
+        <div class="lamp-base"></div>
+    </div>
+
+    <div id="statusBadge" class="status-badge">LAMPU MATI (0)</div>
+    <div id="logicFormula" class="logic-readout">(0 AND 0) OR 0 = 0</div>
+
+    <!-- Panel Input Sensor & Saklar -->
+    <div class="control-group">
+        <label class="switch-row">
+            <div>
+                <span class="label-title">Sensor Gelap (P)</span>
+                <span class="label-desc">Aktifkan jika cahaya ruangan gelap</span>
+            </div>
+            <div class="switch">
+                <input type="checkbox" id="sensorP" onchange="cekLogikaLampu()">
+                <span class="slider"></span>
+            </div>
+        </label>
+
+        <label class="switch-row">
+            <div>
+                <span class="label-title">Jadwal Tidur (Q)</span>
+                <span class="label-desc">Aktifkan jika pukul 22.00 – 05.00</span>
+            </div>
+            <div class="switch">
+                <input type="checkbox" id="sensorQ" onchange="cekLogikaLampu()">
+                <span class="slider"></span>
+            </div>
+        </label>
+
+        <label class="switch-row">
+            <div>
+                <span class="label-title">Saklar Manual (R)</span>
+                <span class="label-desc">Paksa lampu menyala kapan saja</span>
+            </div>
+            <div class="switch">
+                <input type="checkbox" id="saklarR" onchange="cekLogikaLampu()">
+                <span class="slider"></span>
+            </div>
+        </label>
+    </div>
+</div>
+
+<script>
+    function cekLogikaLampu() {
+        // Ambil nilai boolean (true/false) dari masing-masing input
+        const P = document.getElementById('sensorP').checked;
+        const Q = document.getElementById('sensorQ').checked;
+        const R = document.getElementById('saklarR').checked;
+
+        // Implementasi rumus logika: L = (P AND Q) OR R
+        const L = (P && Q) || R;
+
+        // Elemen tampilan
+        const lampShade = document.getElementById('lampShade');
+        const statusBadge = document.getElementById('statusBadge');
+        const logicFormula = document.getElementById('logicFormula');
+        const body = document.body;
+
+        // Ubah tampilan lampu berdasarkan nilai L
+        if (L) {
+            lampShade.classList.add('on');
+            statusBadge.classList.add('on');
+            body.classList.add('room-lit');
+            statusBadge.textContent = "LAMPU MENYALA (1)";
+        } else {
+            lampShade.classList.remove('on');
+            statusBadge.classList.remove('on');
+            body.classList.remove('room-lit');
+            statusBadge.textContent = "LAMPU MATI (0)";
+        }
+
+        // Tampilkan perhitungan biner secara real-time
+        const bP = P ? 1 : 0;
+        const bQ = Q ? 1 : 0;
+        const bR = R ? 1 : 0;
+        const bL = L ? 1 : 0;
+
+        logicFormula.textContent = `(${bP} AND ${bQ}) OR ${bR} = ${bL}`;
+    }
+</script>
+
+</body>
+</html>
